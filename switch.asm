@@ -150,7 +150,6 @@ caseDefault:
   ret
 
 checkinput:
-  call iprintLF
   cmp eax, 0
   jl error_exit
   cmp eax, 65535
