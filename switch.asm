@@ -1,42 +1,89 @@
+%include 'functions.asm'
+
 section .data
-  inputNum db 'Enter a number (1-3): ' ;Ask the user to enter a number
-  inMsgLen equ $-inputNum  ;The length of the message
-  case1Msg db 'first', 0xa
-  c1MsgLen equ $-case1Msg
-  case2Msg db 'second', 0xa
-  c2MsgLen equ $-case2Msg
-  case3Msg db 'third', 0xa
-  c3MsgLen equ $-case3Msg
-  caseDefMsg db 'default', 0xa
-  cDefMsgLen equ $-caseDefMsg
+  val1Msg db 'Enter val1 (0-65535): ', 0h ;Ask the user to enter a number
+  val2Msg db 'Enter val2 (0-65535): ', 0h ;Ask the user to enter a number
+  val3Msg db 'Enter val3 (0-65535): ', 0h ;Ask the user to enter a number
+  nvalMsg db 'Enter nvalue (0-3): ', 0h ;Ask the user to enter a number
+  inputMsg db 'Input out of bounds! ', 0h ;Ask the user to enter a number
+  case0Msg db 'Case 0: ', 0h
+  case1Msg db 'Case 1: ', 0h
+  case2Msg db 'Case 2: ', 0h
+  case3Msg db 'Case 3: ', 0h
+  caseDefMsg db 'default', 0h
 
 section .bss
-  num resb 5
+  nvalue resb 5
+  val1 resb 256
+  val2 resb 256
+  val3 resb 256
 
 section .text
   global _start
 
 _start:
-  mov eax, 4
-  mov ebx, 1 ; descriptor value for stdout
-  mov ecx, inputNum
-  mov edx, inMsgLen
-  int 80h
+  mov eax, val1Msg
+  call sprint
 
-  ;Read and store the user input
   mov eax, 3
-  mov ebx, 0 ; descriptor value for stdin
-  mov ecx, num
-  mov edx, 5 ;5 bytes (numeric, 1 for sign) of that information
+  mov ebx, 0
+  mov ecx, val1
+  mov edx, 256
   int 80h
+  mov eax, val1
+  call atoi
+  call checkinput
 
+  ; Prompt for val2
+  mov eax, val2Msg
+  call sprint
+
+  mov eax, 3
+  mov ebx, 0
+  mov ecx, val2
+  mov edx, 256
+  int 80h
+  mov eax, val2
+  call atoi
+  call checkinput
+
+  ; Prompt for val 3
+  mov eax, val3Msg
+  call sprint
+
+  mov eax, 3
+  mov ebx, 0
+  mov ecx, val3
+  mov edx, 256
+  int 80h
+  mov eax, val3
+  call atoi
+  call checkinput
+
+  ; Prompt for nvalue
+  mov eax, nvalMsg
+  call sprint
+
+  mov eax, 3
+  mov ebx, 0
+  mov ecx, nvalue
+  mov edx, 5
+  int 80h
+  mov eax, nvalue
+  call atoi
+  call checkinput
+
+  ; Call switch logic
   call switch1
 
   call exit
 
 switch1:
-  mov eax, num
+  mov eax, nvalue
   call atoi
+
+  cmp eax, 0
+  je case0
 
   cmp eax, 1
   je case1
@@ -49,72 +96,71 @@ switch1:
 
   jne caseDefault
 
-atoi:
-  push ebx  ; preserve ebx on the stack to be restored after function runs
-  push ecx  ; preserve ecx on the stack to be restored after function runs
-  push edx  ; preserve edx on the stack to be restored after function runs
-  push esi  ; preserve esi on the stack to be restored after function runs
-  mov esi, eax ; move pointer in eax into esi (our number to convert)
-  mov eax, 0  ; initialise eax with decimal value 0
-  mov ecx, 0  ; initialise ecx with decimal value 0
-
-.multiplyLoop:
-  xor ebx, ebx ; resets both lower and uppper bytes of ebx to be 0
-  mov bl, [esi+ecx]   ; move a single byte into ebx register's lower half
-  cmp bl, 48  ; compare ebx register's lower half value against ascii value 48 (char value 0)
-  jl  .finished   ; jump if less than to label finished
-  cmp bl, 57  ; compare ebx register's lower half value against ascii value 57 (char value 9)
-  jg  .finished   ; jump if greater than to label finished
-
-  sub bl, 48  ; convert ebx register's lower half to decimal representation of ascii value
-  add eax, ebx ; add ebx to our interger value in eax
-  mov ebx, 10  ; move decimal value 10 into ebx
-  mul ebx  ; multiply eax by ebx to get place value
-  inc ecx  ; increment ecx (our counter register)
-  jmp .multiplyLoop   ; continue multiply loop
-
-.finished:
-  cmp ecx, 0  ; compare ecx register's value against decimal 0 (our counter register)
-  je  .restore ; jump if equal to 0 (no integer arguments were passed to atoi)
-  mov ebx, 10  ; move decimal value 10 into ebx
-  div ebx  ; divide eax by value in ebx (in this case 10)
-
-.restore:
-  pop esi  ; restore esi from the value we pushed onto the stack at the start
-  pop edx  ; restore edx from the value we pushed onto the stack at the start
-  pop ecx  ; restore ecx from the value we pushed onto the stack at the start
-  pop ebx  ; restore ebx from the value we pushed onto the stack at the start
-  ret
-
-print:
-  mov eax, 4
-  mov ebx, 1
-  int 80h
+case0:
+  mov eax, case0Msg
+  call sprint
+  mov eax, val1
+  call atoi
+  mov ebx, eax
+  mov eax, val2
+  call atoi
+  mul ebx
+  call iprintLF
   ret
 
 case1:
-  mov ecx, case1Msg
-  mov edx, c1MsgLen
-  call print
+  mov eax, case1Msg
+  call sprint
+  mov eax, val2
+  call atoi
+  mov ebx, eax
+  mov eax, val3
+  call atoi
+  mul ebx
+  call iprintLF
   ret
 
 case2:
-  mov ecx, case2Msg
-  mov edx, c2MsgLen
-  call print
+  mov eax, case2Msg
+  call sprint
+  mov eax, val1
+  call atoi
+  mov ebx, eax
+  mov eax, val3
+  call atoi
+  sub eax, ebx
+  call iprintLF
   ret
 
 case3:
-  mov ecx, case3Msg
-  mov edx, c3MsgLen
-  call print
+  mov eax, case3Msg
+  call sprint
+  mov eax, val3
+  call atoi
+  mov ebx, eax
+  mov eax, val1
+  call atoi
+  sub eax, ebx
+  call iprintLF
   ret
 
 caseDefault:
-  mov ecx, caseDefMsg
-  mov edx, cDefMsgLen
-  call print
+  mov eax, caseDefMsg
+  call sprint
   ret
+
+checkinput:
+  call iprintLF
+  cmp eax, 0
+  jl error_exit
+  cmp eax, 65535
+  jg error_exit
+  ret
+
+error_exit:
+  mov eax, inputMsg
+  call sprintLF
+  call exit
 
 exit:
   mov eax, 1
