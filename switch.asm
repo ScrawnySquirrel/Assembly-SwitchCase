@@ -6,11 +6,13 @@ section .data
   val3Msg db 'Enter val3 (0-65535): ', 0h ;Ask the user to enter a number
   nvalMsg db 'Enter nvalue (0-3): ', 0h ;Ask the user to enter a number
   inputMsg db 'Input out of bounds! ', 0h ;Ask the user to enter a number
+  carrytMsg db 'Arithmetic overflow! ', 0h ;Ask the user to enter a number
   case0Msg db 'Case 0: ', 0h
   case1Msg db 'Case 1: ', 0h
   case2Msg db 'Case 2: ', 0h
   case3Msg db 'Case 3: ', 0h
   caseDefMsg db 'default', 0h
+  negSign db '-', 0h
 
 section .bss
   nvalue resb 5
@@ -129,6 +131,7 @@ case2:
   mov eax, val3
   call atoi
   sub eax, ebx
+  jc negative_res
   call iprintLF
   ret
 
@@ -141,6 +144,7 @@ case3:
   mov eax, val1
   call atoi
   sub eax, ebx
+  jc negative_res
   call iprintLF
   ret
 
@@ -151,15 +155,24 @@ caseDefault:
 
 checkinput:
   cmp eax, 0
-  jl error_exit
+  jl input_error_exit
   cmp eax, 65535
-  jg error_exit
+  jg input_error_exit
   ret
 
-error_exit:
+input_error_exit:
   mov eax, inputMsg
   call sprintLF
   call exit
+
+negative_res:
+  push eax
+  mov eax, negSign
+  call sprint
+  pop eax
+  neg eax
+  call iprintLF
+  ret
 
 exit:
   mov eax, 1
